@@ -1,17 +1,17 @@
 # HASS-Clarifai
 Home-assistant image processing with [Clarifai](https://www.clarifai.com/).
-  Clarifai provide a number of different [models](https://www.clarifai.com/models).
+Clarifai provide a number of different [models](https://www.clarifai.com/models).
 
 There is an open issue with the install of clarifai within the home-assistant venv. To get around this, within venv I had to `pip install clarifai==2.0.32`
 then `pip install --upgrade requests==2.14.2`
 
-We will use a dummy camera for the puprpose of this demo:
+We will use the camera for the purpose of this documentation:
 ```
 camera:
   - platform: demo
   ```
 
-To first setup authentication with Clarifai, first generate an API key (your_key) as per the [Clarifai docs](https://www.clarifai.com/developer/docs/) then add to you Home-assistant config:
+To setup authentication with Clarifai, first generate an API key (your_key) as per the [Clarifai docs](https://www.clarifai.com/developer/docs/) then add the follwing to you Home-assistant config:
 ```
 clarifai:
   api_key: "your_key"
