@@ -19,6 +19,7 @@ REQUIREMENTS = ['clarifai==2.0.32']
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'clarifai'
+CLARIFAI_APP = 'clarifai_app'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
@@ -34,7 +35,8 @@ def setup(hass, config):
 
     try:
         app = ClarifaiApp(api_key=api_key)
-        _LOGGER.error("Clarifai auth went OK!")
+        hass.data[CLARIFAI_APP] = app
+        #_LOGGER.error("Clarifai auth went OK!")
     except RequestException:
         # This doesnt currently work
         _LOGGER.error("Error while accessing the Clarifai. "
