@@ -58,8 +58,8 @@ class ClarifaiClassifier(Entity):
         self._image_path = image_path
         self._response = None
         self._data = None
-        self._classifications = None
-        self._state = None
+        self._classifications = {}  # The dict of classifications
+        self._state = None    # The most likely classification
         self.process_image()
 
     def process_image(self):
@@ -74,17 +74,13 @@ class ClarifaiClassifier(Entity):
 
         if self._response['status']['description'] == 'Ok':
             self._data = self._response['outputs'][0]['data']['concepts']
-            classifications = {
-                item['name']: item['value'] for item in self._data
-            }
-            self._classifications = [
-                (k, v) for k, v in classifications.items()
-            ]
-            self._state = self._classifications[0][0]
+            self._classifications = {
+                item['name']: item['value'] for item in self._data}
+            self._state = next(iter(self._classifications))
         else:
             self._state = "Request failed"
             self._data = None
-            self._classifications = None
+            self._classifications = {}
 
     @property
     def state(self):
@@ -94,11 +90,7 @@ class ClarifaiClassifier(Entity):
     @property
     def state_attributes(self):
         """Return device specific state attributes."""
-        attr = {
-            'url': self._url,
-            'image_path': self._image_path,
-            'response': self._response,
-            }
+        attr = self._classifications
         return attr
 
     @property
