@@ -4,83 +4,108 @@ Component that will perform image classification via Clarifai.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/image_processing/clarifai
 """
+from datetime import timedelta
+import io
 import requests
 import logging
 import base64
 import pathlib
 import voluptuous as vol
 
-from homeassistant.helpers.entity import Entity
+from homeassistant.core import split_entity_id
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import CONF_NAME
+from homeassistant.components.image_processing import (
+    PLATFORM_SCHEMA, ImageProcessingEntity, CONF_SOURCE, CONF_ENTITY_ID,
+    CONF_NAME)
 
 _LOGGER = logging.getLogger(__name__)
+
+SCAN_INTERVAL = timedelta(seconds=2)
 
 CONF_API_KEY = 'api_key'
 CONF_MODEL_ID = 'model_id'
 CONF_FILE_PATH = 'file_path'
 
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_NAME): cv.string,
     vol.Required(CONF_API_KEY): cv.string,
     vol.Required(CONF_MODEL_ID): cv.string,
-    vol.Required(CONF_FILE_PATH): cv.isfile,
 })
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    """Set up the folder sensor."""
-    classifier = ClarifaiClassifier(
-        config.get(CONF_NAME),
-        config.get(CONF_API_KEY),
-        config.get(CONF_MODEL_ID),
-        config.get(CONF_FILE_PATH)
-        )
-    add_devices([classifier], True)
+    """Set up the Clarifai classifier."""
+    entities = []
+    for camera in config[CONF_SOURCE]:
+        entities.append(ClarifaiClassifier(
+            hass,
+            camera.get(CONF_NAME),
+            config[CONF_API_KEY],
+            config[CONF_MODEL_ID],
+            camera[CONF_ENTITY_ID],
+        ))
+    add_devices(entities)
 
 
-class ClarifaiClassifier(Entity):
+class ClarifaiClassifier(ImageProcessingEntity):
     """Perform a classification via Clarifai."""
 
     ICON = 'mdi:file'
 
-    def __init__(self, name, API_key, model_id, image_path):
+    def __init__(self, hass, name, API_key, model_id, camera_entity):
         """Init with the API key and model id"""
-        self._name = name
+        self.hass = hass
+        if name:  # Since name is optional.
+            self._name = name
+        else:
+            self._name = "Clarifai {0}".format(
+                split_entity_id(camera_entity)[1])
+        self._camera_entity = camera_entity
         self._headers = {
             'content-type': 'application/json',
             'Authorization': 'Key ' + API_key
         }
         self._url = "https://api.clarifai.com/v2/models/{}/outputs".format(
             model_id)
-        self._image_path = image_path
-        self._response = None
-        self._data = None
         self._classifications = {}  # The dict of classifications
         self._state = None    # The most likely classification
-        self.process_image()
+        _LOGGER.error("XXXXXX _camera_entity %s", camera_entity)
 
-    def process_image(self):
+    def process_image(self, image):
         """Perform classification of a single image."""
-        img_file_data = pathlib.Path(self._image_path).read_bytes()
+        from PIL import Image
+        stream = io.BytesIO(image)
+        img = Image.open(stream)
+        img.save('/Users/robincole/.homeassistant/images/test', 'png')
+        self._state = "Request_failed"
+        # img_file_data = pathlib.Path(self._image_path).read_bytes()
+        #img_file_data = io.BytesIO(image)
+        """
         base64_img = base64.b64encode(img_file_data).decode('ascii')
         json_data = {
             "inputs": [{"data": {"image": {"base64": base64_img}}}]
         }
-        self._response = requests.post(
+        response = requests.post(
             self._url, headers=self._headers, json=json_data).json()
 
-        if self._response['status']['description'] == 'Ok':
-            self._data = self._response['outputs'][0]['data']['concepts']
+        if response['status']['description'] == 'Ok':
+            data = response['outputs'][0]['data']['concepts']
             self._classifications = {
-                item['name']: item['value'] for item in self._data}
+                item['name']: item['value'] for item in data}
             self._state = next(iter(self._classifications))
         else:
-            self._state = "Request failed"
-            self._data = None
+            self._state = "Request_failed"
             self._classifications = {}
+        """
+
+    @property
+    def device_class(self):
+        """Return the class of this device, from component DEVICE_CLASSES."""
+        return 'ocr'
+
+    @property
+    def camera_entity(self):
+        """Return camera entity id from process pictures."""
+        return self._camera_entity
 
     @property
     def state(self):
