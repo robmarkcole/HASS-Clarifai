@@ -5,11 +5,9 @@ For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/image_processing/clarifai
 """
 from datetime import timedelta
-import io
 import requests
 import logging
 import base64
-import pathlib
 import voluptuous as vol
 
 from homeassistant.core import split_entity_id
@@ -68,19 +66,10 @@ class ClarifaiClassifier(ImageProcessingEntity):
             model_id)
         self._classifications = {}  # The dict of classifications
         self._state = None    # The most likely classification
-        _LOGGER.error("XXXXXX _camera_entity %s", camera_entity)
 
     def process_image(self, image):
         """Perform classification of a single image."""
-        from PIL import Image
-        stream = io.BytesIO(image)
-        img = Image.open(stream)
-        img.save('/Users/robincole/.homeassistant/images/test', 'png')
-        self._state = "Request_failed"
-        # img_file_data = pathlib.Path(self._image_path).read_bytes()
-        #img_file_data = io.BytesIO(image)
-        """
-        base64_img = base64.b64encode(img_file_data).decode('ascii')
+        base64_img = base64.b64encode(image).decode('ascii')
         json_data = {
             "inputs": [{"data": {"image": {"base64": base64_img}}}]
         }
@@ -95,7 +84,6 @@ class ClarifaiClassifier(ImageProcessingEntity):
         else:
             self._state = "Request_failed"
             self._classifications = {}
-        """
 
     @property
     def device_class(self):
