@@ -1,6 +1,6 @@
 # HASS-Clarifai
-Home-assistant image processing with [Clarifai](https://www.clarifai.com/).
-Clarifai provide a number of different [models](https://www.clarifai.com/models).
+Home-assistant image processing with [Clarifai](https://www.clarifai.com/). Clarifai provide a number of different [models](https://www.clarifai.com/models).
+The component creates an entity which displays the most likely classification of the image, and the attributes contain all identified classes.
 
 To setup authentication with Clarifai, first generate an API key (YOUR_KEY) as per the [Clarifai docs](https://www.clarifai.com/developer/docs/) then add the following to you Home-assistant config:
 
@@ -10,14 +10,11 @@ image_processing:
     name: general_classifier
     api_key: YOUR_KEY
     model_id: YOUR_MODEL_ID
-    file_path: /Users/robincole/Documents/Github/HASS-Clarifai/images/bird.jpg
+    source:
+      - entity_id: camera.demo_camera
 
-# Lets display the file on the front end.
-camera:
-  - platform: local_file
-    file_path: /Users/robincole/Documents/Github/HASS-Clarifai/images/bird.jpg
 ```
 
 <p align="center">
-<img src="https://github.com/robmarkcole/HASS-Clarifai/blob/master/images/usage.png" width="500">
+<img src="https://github.com/robmarkcole/HASS-Clarifai/blob/master/images/usage.png" width="300">
 </p>
