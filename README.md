@@ -27,4 +27,5 @@ image_processing:
 
 #### To do
 1. Currently image_processing of a camera feed performs a processing action every `scan_interval`. Would rather just processing image on each new frame captured by the camera.
-2. Fork this component and use a classifier running on a local computer, probably in Docker. [MachineBox](https://machinebox.io/) is a good candidate. 
+2. Fork this component and use a classifier running on a local computer, probably in Docker. [MachineBox](https://machinebox.io/) is a good candidate.
+3. Implement binary sensor for each concept.
