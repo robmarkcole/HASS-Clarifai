@@ -18,15 +18,18 @@ from homeassistant.components.image_processing import (
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(seconds=2)
+SCAN_INTERVAL = timedelta(seconds=20)
 
 CONF_API_KEY = 'api_key'
 CONF_MODEL_ID = 'model_id'
-CONF_FILE_PATH = 'file_path'
+CONF_CONCEPTS = 'concepts'
+DEFAULT_CONCEPTS = 'NO_CONCEPT'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_API_KEY): cv.string,
     vol.Required(CONF_MODEL_ID): cv.string,
+    vol.Optional(CONF_CONCEPTS, default=[DEFAULT_CONCEPTS]):
+        vol.All(cv.ensure_list, [cv.string]),
 })
 
 
@@ -39,6 +42,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             camera.get(CONF_NAME),
             config[CONF_API_KEY],
             config[CONF_MODEL_ID],
+            config[CONF_CONCEPTS],
             camera[CONF_ENTITY_ID],
         ))
     add_devices(entities)
@@ -49,7 +53,7 @@ class ClarifaiClassifier(ImageProcessingEntity):
 
     ICON = 'mdi:file'
 
-    def __init__(self, hass, name, API_key, model_id, camera_entity):
+    def __init__(self, hass, name, API_key, model_id, concepts, camera_entity):
         """Init with the API key and model id"""
         self.hass = hass
         if name:  # Since name is optional.
@@ -57,6 +61,7 @@ class ClarifaiClassifier(ImageProcessingEntity):
         else:
             self._name = "Clarifai {0}".format(
                 split_entity_id(camera_entity)[1])
+        self._concepts = concepts
         self._camera_entity = camera_entity
         self._headers = {
             'content-type': 'application/json',
@@ -79,16 +84,27 @@ class ClarifaiClassifier(ImageProcessingEntity):
         if response['status']['description'] == 'Ok':
             data = response['outputs'][0]['data']['concepts']
             self._classifications = {
-                item['name']: item['value'] for item in data}
+                item['name']: round(100.0*item['value'], 1) for item in data}
             self._state = next(iter(self._classifications))
+            self.fire_concept_events()
         else:
             self._state = "Request_failed"
             self._classifications = {}
 
+    def fire_concept_events(self):
+        """Fire an event for each concept identified."""
+        identified_concepts = self._classifications.keys() & self._concepts
+        for concept in identified_concepts:
+            self.hass.bus.fire(
+                'Clarifai', {
+                    CONF_ENTITY_ID: self._camera_entity,
+                    'concept': concept,
+                    })
+
     @property
     def device_class(self):
         """Return the class of this device, from component DEVICE_CLASSES."""
-        return 'ocr'
+        return 'class'
 
     @property
     def camera_entity(self):
