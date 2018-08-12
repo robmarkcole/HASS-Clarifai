@@ -4,8 +4,6 @@ Component that will perform image classification via Clarifai.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/image_processing/clarifai
 """
-from datetime import timedelta
-import requests
 import logging
 import base64
 import voluptuous as vol
@@ -20,7 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_API_KEY = 'api_key'
 CONF_CONCEPTS = 'concepts'
-DEFAULT_CONCEPTS = 'NO_CONCEPT'
+DEFAULT_CONCEPTS = 'None'
+EVENT_MODEL_PREDICTION = 'image_processing.model_prediction'
 
 REQUIREMENTS = ['clarifai==2.2.3']
 
@@ -53,8 +52,7 @@ class ClarifaiClassifier(ImageProcessingEntity):
         """Init with the API key."""
         from clarifai.rest import ClarifaiApp
         self.app = ClarifaiApp(api_key=API_key)
-        self.model_name = 'general-v1.3'
-        self.model = self.app.models.get(self.model_name)
+        self.model = self.app.models.get('general-v1.3')
         if name:  # Since name is optional.
             self._name = name
         else:
@@ -85,7 +83,7 @@ class ClarifaiClassifier(ImageProcessingEntity):
         identified_concepts = self._classifications.keys() & self._concepts
         for concept in identified_concepts:
             self.hass.bus.fire(
-                'Clarifai', {
+                EVENT_MODEL_PREDICTION, {
                     CONF_ENTITY_ID: self._camera_entity,
                     'concept': concept,
                     })
