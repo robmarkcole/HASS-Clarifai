@@ -16,6 +16,7 @@ from homeassistant.components.image_processing import (
 
 _LOGGER = logging.getLogger(__name__)
 
+CLASSIFIER = 'Clarifai'
 CONF_API_KEY = 'api_key'
 CONF_CONCEPTS = 'concepts'
 DEFAULT_CONCEPTS = 'None'
@@ -28,6 +29,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_CONCEPTS, default=[DEFAULT_CONCEPTS]):
         vol.All(cv.ensure_list, [cv.string]),
 })
+
+
+def encode_image(image):
+    """base64 encode an image stream."""
+    base64_img = base64.b64encode(image)
+    return base64_img
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -46,18 +53,17 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 class ClarifaiClassifier(ImageProcessingEntity):
     """Perform a classification via Clarifai."""
 
-    ICON = 'mdi:file'
-
     def __init__(self, name, API_key, concepts, camera_entity):
         """Init with the API key."""
         from clarifai.rest import ClarifaiApp
         self.app = ClarifaiApp(api_key=API_key)
-        self.model = self.app.models.get('general-v1.3')
+        model = 'general-v1.3'
+        self.model = self.app.models.get(model)
         if name:  # Since name is optional.
             self._name = name
         else:
-            self._name = "Clarifai {0}".format(
-                split_entity_id(camera_entity)[1])
+            entity_name = split_entity_id(camera_entity)[1]
+            self._name = "{} {}".format(CLASSIFIER, entity_name)
         self._concepts = concepts
         self._camera_entity = camera_entity
         self._classifications = {}  # The dict of classifications
@@ -65,13 +71,12 @@ class ClarifaiClassifier(ImageProcessingEntity):
 
     def process_image(self, image):
         """Perform classification of a single image."""
-        base64_img = base64.b64encode(image)
-        response = self.model.predict_by_base64(base64_img)
+        response = self.model.predict_by_base64(encode_image(image))
 
         if response['status']['description'] == 'Ok':
             data = response['outputs'][0]['data']['concepts']
             self._classifications = {
-                item['name']: round(100.0*item['value'], 1) for item in data}
+                item['name']: round(100.0*item['value'], 2) for item in data}
             self._state = next(iter(self._classifications))
             self.fire_concept_events()
         else:
@@ -108,11 +113,6 @@ class ClarifaiClassifier(ImageProcessingEntity):
         """Return device specific state attributes."""
         attr = self._classifications
         return attr
-
-    @property
-    def icon(self):
-        """Icon to use in the frontend, if any."""
-        return self.ICON
 
     @property
     def name(self):
