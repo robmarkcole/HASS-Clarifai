@@ -1,5 +1,5 @@
 # HASS-Clarifai
-Home-assistant custom component for  [image processing](https://home-assistant.io/components/image_processing/) with [Clarifai](https://www.clarifai.com/). Clarifai provide a number of different [models](https://www.clarifai.com/models). The component creates an entity with a state that is the most likely concept (objects or ideas) within a camera image. The entities attributes contains a dictionary of all identified concepts and their probability (in %). An event is fired for each configured concept if that concept is identified.
+Home-assistant custom component for [image processing](https://home-assistant.io/components/image_processing/) with [Clarifai](https://www.clarifai.com/) using the [general model](https://www.clarifai.com/models/general-image-recognition-model-aaa03c23b3724a16a56b629203edc62c). The component creates an entity with a state that is the most likely concept (objects or ideas) within a camera image. The entities attributes contains a dictionary of all identified concepts and their probability (in %). A `image_processing.model_prediction` event is fired for each concept predicted by the model.
 
 * Place the custom_components folder in your configuration directory (or add its contents to an existing custom_components folder).
 * The maximum image file size supported is 195 KB.
@@ -12,7 +12,6 @@ image_processing:
   - platform: clarifai
     name: general_classifier
     api_key: YOUR_KEY
-    model_id: YOUR_MODEL_ID
     source:
       - entity_id: camera.demo_camera
     concepts:
@@ -24,8 +23,3 @@ image_processing:
 <p align="center">
 <img src="https://github.com/robmarkcole/HASS-Clarifai/blob/master/images/usage.png" width="700">
 </p>
-
-#### To do
-1. Currently image_processing of a camera feed performs a processing action every `scan_interval`. Would rather just processing image on each new frame captured by the camera.
-2. Fork this component and use a classifier running on a local computer, probably in Docker. [MachineBox](https://machinebox.io/) is a good candidate.
-3. Implement binary sensor for each concept.
