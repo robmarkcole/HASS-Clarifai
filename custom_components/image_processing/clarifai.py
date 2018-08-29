@@ -37,6 +37,12 @@ def encode_image(image):
     return base64_img
 
 
+def parse_concepts(api_concepts):
+    """Parse the API concepts data."""
+    return {concept['name']: round(100.0*concept['value'], 2)
+            for concept in api_concepts}
+
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Clarifai classifier."""
     entities = []
@@ -74,9 +80,8 @@ class ClarifaiClassifier(ImageProcessingEntity):
         response = self.model.predict_by_base64(encode_image(image))
 
         if response['status']['description'] == 'Ok':
-            data = response['outputs'][0]['data']['concepts']
-            self._classifications = {
-                item['name']: round(100.0*item['value'], 2) for item in data}
+            api_concepts = response['outputs'][0]['data']['concepts']
+            self._classifications = parse_concepts(api_concepts)
             self._state = next(iter(self._classifications))
             self.fire_concept_events()
         else:
