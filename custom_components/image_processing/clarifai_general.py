@@ -4,8 +4,10 @@ Component that will perform image classification via Clarifai.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/image_processing/clarifai
 """
-import logging
 import base64
+import json
+import logging
+
 import voluptuous as vol
 
 from homeassistant.core import split_entity_id
@@ -43,13 +45,31 @@ def parse_concepts(api_concepts):
             for concept in api_concepts}
 
 
+def validate_api_key(api_key):
+    """Check that an API key is valid, if yes return the app."""
+    try:
+        from clarifai.rest import ClarifaiApp, ApiError
+        app = ClarifaiApp(api_key=api_key)
+        return app
+    except ApiError as exc:
+        error = json.loads(exc.response.content)
+        _LOGGER.error(
+            "%s error: %s", CLASSIFIER, error['status']['details'])
+        return None
+
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Clarifai classifier."""
+    api_key = config[CONF_API_KEY]
+    app = validate_api_key(api_key)
+    if app is None:
+        return
+
     entities = []
     for camera in config[CONF_SOURCE]:
         entities.append(ClarifaiClassifier(
             camera.get(CONF_NAME),
-            config[CONF_API_KEY],
+            app,
             config[CONF_CONCEPTS],
             camera[CONF_ENTITY_ID],
         ))
@@ -59,12 +79,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 class ClarifaiClassifier(ImageProcessingEntity):
     """Perform a classification via Clarifai."""
 
-    def __init__(self, name, API_key, concepts, camera_entity):
+    def __init__(self, name, app, concepts, camera_entity):
         """Init with the API key."""
-        from clarifai.rest import ClarifaiApp
-        self.app = ClarifaiApp(api_key=API_key)
         model = 'general-v1.3'
-        self.model = self.app.models.get(model)
+        self.model = app.models.get(model)
         if name:  # Since name is optional.
             self._name = name
         else:

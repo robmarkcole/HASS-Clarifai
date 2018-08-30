@@ -9,7 +9,7 @@ To setup authentication with Clarifai, first generate an API key (YOUR_KEY) as p
 
 ```
 image_processing:
-  - platform: clarifai
+  - platform: clarifai_general
     name: general_classifier
     api_key: YOUR_KEY
     source:
