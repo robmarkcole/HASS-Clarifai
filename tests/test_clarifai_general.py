@@ -10,8 +10,6 @@ import homeassistant.components.image_processing as ip
 import homeassistant.components.image_processing.clarifai_general as cg
 
 
-# Mock data returned by the Clarifai API.
-
 MOCK_NAME = 'mock_name'
 MOCK_API_KEY = '12345'
 
@@ -21,7 +19,6 @@ MOCK_RESPONSE = {'status': {'description': 'Ok'},
                                                     {'name': 'cat',
                                                      'value': 0.14568}]}}]}
 
-# Concepts data after parsing.
 PARSED_CONCEPTS = {'cat': 14.57, 'dog': 85.43}
 
 VALID_ENTITY_ID = 'image_processing.clarifai_demo_camera'
@@ -41,7 +38,7 @@ VALID_CONFIG = {
 
 @pytest.fixture
 def mock_app():
-    """Return a mock camera image."""
+    """Return a mock ClarifaiApp object."""
     with patch('clarifai.rest.ClarifaiApp') as _mock_app:
         yield _mock_app
 
@@ -57,8 +54,7 @@ def mock_image():
 @pytest.fixture
 def mock_response():
     """Return a mock response from Clarifai."""
-    with patch('homeassistant.components.image_processing.clarifai_general.'
-               'ClarifaiClassifier.model.predict_by_base64',
+    with patch('clarifai.rest.ClarifaiApp.model.predict_by_base64',
                return_value=MOCK_RESPONSE) as _mock_response:
         yield _mock_response
 
@@ -82,11 +78,10 @@ def test_valid_api_key(mock_app):
 
 def test_invalid_api_key(caplog, mock_app):
     """Test that an invalid api key is caught."""
-    pass
-    # from clarifai.rest import ApiError
-    # mock_app.side_effect = ApiError
-    # cg.validate_api_key(MOCK_API_KEY)
-    # assert "Clarifai error: Key not found" in caplog.text
+    from clarifai.rest import ApiError
+    mock_app.side_effect = ApiError
+    cg.validate_api_key(MOCK_API_KEY)
+    assert "Clarifai error: Key not found" in caplog.text
 
 
 async def test_setup_platform(hass, mock_app, mock_image):

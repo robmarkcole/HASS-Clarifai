@@ -23,3 +23,18 @@ image_processing:
 <p align="center">
 <img src="https://github.com/robmarkcole/HASS-Clarifai/blob/master/images/usage.png" width="700">
 </p>
+
+## Note on tests
+Had to add:
+```
+TEST_REQUIREMENTS = (
+    'aioautomatic',
+    'aiohttp_cors',
+    'aiohue',
+    'apns2',
+    'caldav',
+    'clarifai',
+```
+in gen_requirements_all.py
+
+Run tests with `(home-assistant) Robins-Air:home-assistant robincole$ ./bin/py.test tests/components/image_processing/test_clarifai_general.py`
