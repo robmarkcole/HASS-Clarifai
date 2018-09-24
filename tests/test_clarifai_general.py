@@ -12,7 +12,7 @@ import homeassistant.components.image_processing.clarifai_general as cg
 
 MOCK_NAME = 'mock_name'
 MOCK_API_KEY = '12345'
-
+MOCK_KEY_ERROR = {'status': {'description': 'API key not found'}}
 MOCK_RESPONSE = {'status': {'description': 'Ok'},
                  'outputs': [{'data': {'concepts': [{'name': 'dog',
                                                      'value': 0.85432},
@@ -34,6 +34,11 @@ VALID_CONFIG = {
         'platform': 'demo'
         }
     }
+
+
+class KeyErrorException(Exception):
+    def __init__(self):
+        self.response.content = MOCK_KEY_ERROR
 
 
 @pytest.fixture
@@ -78,10 +83,9 @@ def test_valid_api_key(mock_app):
 
 def test_invalid_api_key(caplog, mock_app):
     """Test that an invalid api key is caught."""
-    from clarifai.rest import ApiError
-    mock_app.side_effect = ApiError
-    cg.validate_api_key(MOCK_API_KEY)
-    assert "Clarifai error: Key not found" in caplog.text
+    with pytest.raises(KeyErrorException):
+        cg.validate_api_key(MOCK_API_KEY)
+        assert "Clarifai error: API Key not found" in caplog.text
 
 
 async def test_setup_platform(hass, mock_app, mock_image):
@@ -121,4 +125,3 @@ async def test_setup_platform_with_name(hass, mock_app):
     assert hass.states.get(named_entity_id)
     state = hass.states.get(named_entity_id)
     assert state.attributes.get(CONF_FRIENDLY_NAME) == MOCK_NAME
-
