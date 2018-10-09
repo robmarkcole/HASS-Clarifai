@@ -1,6 +1,8 @@
 """The tests for the clarifai_general component."""
+import json
 from unittest.mock import patch
 
+from clarifai.rest import ApiError
 import pytest
 
 from homeassistant.core import callback
@@ -12,7 +14,6 @@ import homeassistant.components.image_processing.clarifai_general as cg
 
 MOCK_NAME = 'mock_name'
 MOCK_API_KEY = '12345'
-MOCK_KEY_ERROR = {'status': {'description': 'API key not found'}}
 MOCK_RESPONSE = {'status': {'description': 'Ok'},
                  'outputs': [{'data': {'concepts': [{'name': 'dog',
                                                      'value': 0.85432},
@@ -36,9 +37,15 @@ VALID_CONFIG = {
     }
 
 
-class KeyErrorException(Exception):
-    def __init__(self):
-        self.response.content = MOCK_KEY_ERROR
+class MockErrorResponse:
+    """Mock Clarifai response to bad API key."""
+    status_code = 404
+    reason = 'Failure'
+    content = json.dumps({'status': {'description': 'API key not found'}})
+
+    @staticmethod
+    def json():
+        return {}
 
 
 @pytest.fixture
@@ -46,6 +53,20 @@ def mock_app():
     """Return a mock ClarifaiApp object."""
     with patch('clarifai.rest.ClarifaiApp') as _mock_app:
         yield _mock_app
+
+
+@pytest.fixture
+def mock_app_with_error():
+    """Throw an ApiError."""
+    resource = 'https://www.mock.com/url'
+    params = {}
+    method = 'GET'
+    response = MockErrorResponse()
+    error = ApiError(resource, params, method, response)
+
+    with patch('clarifai.rest.ClarifaiApp',
+               side_effect=error) as _mock_mock_app_with_error:
+        yield _mock_mock_app_with_error
 
 
 @pytest.fixture
@@ -81,11 +102,10 @@ def test_valid_api_key(mock_app):
     mock_app.assert_called_with(api_key=MOCK_API_KEY)
 
 
-def test_invalid_api_key(caplog, mock_app):
+def test_invalid_api_key(mock_app_with_error, caplog):
     """Test that an invalid api key is caught."""
-    with pytest.raises(KeyErrorException):
-        cg.validate_api_key(MOCK_API_KEY)
-        assert "Clarifai error: API Key not found" in caplog.text
+    assert cg.validate_api_key(MOCK_API_KEY) is None
+    assert "Clarifai error: API key not found" in caplog.text
 
 
 async def test_setup_platform(hass, mock_app, mock_image):
